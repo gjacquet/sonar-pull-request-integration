@@ -161,9 +161,9 @@ public class SonarPullRequestMojo extends AbstractMojo {
 		Map<String, String> filesSha = getFilesSha();
 
 		removeIssuesOutsideBounds( fileViolations, linePositioners );
-		getLog().info( "Files with issues " + fileViolations.keySet().size() );
+		getLog().info( "Files with issues " + fileViolations.keySet().size() + ":(" + fileViolations.size() + ")" );
 		removeIssuesAlreadyReported( fileViolations, linePositioners );
-		getLog().info( "Files with new issues " + fileViolations.keySet().size() );
+		getLog().info( "Files with new issues " + fileViolations.keySet().size() + ":(" + fileViolations.size() + ")" );
 
 		try {
 			recordGit( fileViolations, linePositioners, filesSha );
@@ -182,7 +182,8 @@ public class SonarPullRequestMojo extends AbstractMojo {
 
 		Map<String, String> shas = Maps.newHashMap();
 		for (CommitFile commitFile : files) {
-			shas.put( commitFile.getFilename(), commitFile.getBlobUrl().replaceAll( ".*blob/","" ).replaceAll( "/.*", "" ) );
+			shas.put( commitFile.getFilename(),
+					commitFile.getBlobUrl().replaceAll( ".*blob/", "" ).replaceAll( "/.*", "" ) );
 		}
 		return shas;
 	}
@@ -232,15 +233,16 @@ public class SonarPullRequestMojo extends AbstractMojo {
 		return new ComponentConverter( sonarBranch, reactorProjects, files );
 	}
 
-	private void recordGit(Multimap<String, Issue> fileViolations, Map<String, LinePositioner> linePositioners,			Map<String, String> filesSha)			throws IOException {
-		Iterator<RepositoryCommit> commits = pullRequestService.getCommits(				repository, pullRequestId ).iterator();
+	private void recordGit(Multimap<String, Issue> fileViolations, Map<String, LinePositioner> linePositioners,
+			Map<String, String> filesSha) throws IOException {
+		Iterator<RepositoryCommit> commits = pullRequestService.getCommits( repository, pullRequestId ).iterator();
 		if (!commits.hasNext())
 			return;
 
 		Collection<Entry<String, Issue>> entries = fileViolations.entries();
 		for (Entry<String, Issue> entry : entries) {
 			String path = entry.getKey();
-			
+
 			CommitComment comment = new CommitComment();
 			comment.setBody( entry.getValue().message() );
 			comment.setCommitId( filesSha.get( path ) );
