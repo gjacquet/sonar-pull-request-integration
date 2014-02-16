@@ -4,11 +4,11 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
-public class LinePositioner {
+public class PatchLinePositioner implements LinePositioner {
 
 	private Map<Integer, Integer> lineToPosition = Maps.newLinkedHashMap();
 
-	public LinePositioner(String patch) {
+	public PatchLinePositioner(String patch) {
 		String[] lines = patch.split( "[\\r\\n]+" );
 		int position = 0;
 		int currentLine = -1;
@@ -26,6 +26,9 @@ public class LinePositioner {
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see com.contaazul.sonarpullrequestintegration.mojo.LinePositioner#toPostion(int)
+	 */
 	public int toPostion(int line) {
 		if (lineToPosition.containsKey( line ))
 			return lineToPosition.get( line );

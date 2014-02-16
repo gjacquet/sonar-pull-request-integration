@@ -212,7 +212,15 @@ public class SonarPullRequestMojo extends AbstractMojo {
 
 		Map<String, LinePositioner> linePositioners = Maps.newLinkedHashMap();
 		for (CommitFile commitFile : files) {
-			linePositioners.put( commitFile.getFilename(), new LinePositioner( commitFile.getPatch() ) );
+			if (commitFile.getPatch() == null)
+				continue;
+
+			LinePositioner positioner;
+			if ("added".equals( commitFile.getStatus() ))
+				positioner = new OneToOneLinePositioner();
+			else
+				positioner = new PatchLinePositioner( commitFile.getPatch() );
+			linePositioners.put( commitFile.getFilename(), positioner );
 		}
 
 		return linePositioners;
@@ -255,11 +263,16 @@ public class SonarPullRequestMojo extends AbstractMojo {
 			comment.setLine( line );
 			comment.setPosition( linePositioners.get( path ).toPostion( line ) );
 
+			getLog().debug( "Path: " + path );
+			getLog().debug( "Line: " + line );
+			getLog().debug( "Position: " + comment.getPosition() );
+
 			try {
 				pullRequestService
 						.createComment( repository, pullRequestId, comment );
 			} catch (Exception e) {
 				getLog().error( "Unable to comment on: " + path );
+				getLog().debug( e );
 			}
 		}
 	}
@@ -303,9 +316,11 @@ public class SonarPullRequestMojo extends AbstractMojo {
 		IssueClient client = new DefaultIssueClient( requestFactory );
 
 		List<Issue> issues = Lists.newArrayList();
+		getLog().debug( "sonarProjectId: " + sonarProjectId() );
 		for (String component : resources.getComponents()) {
 			Issues result;
 			try {
+				getLog().debug( "component: " + component );
 				result = client.find( IssueQuery.create()
 						.componentRoots( sonarProjectId() )
 						.components( component )

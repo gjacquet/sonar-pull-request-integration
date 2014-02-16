@@ -8,13 +8,13 @@ import org.junit.Test;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import com.contaazul.sonarpullrequestintegration.mojo.LinePositioner;
+import com.contaazul.sonarpullrequestintegration.mojo.PatchLinePositioner;
 
 public class LinePositionerTest {
 
 	@Test
 	public void newFile() throws IOException {
-		LinePositioner lp = new LinePositioner(Files.toString(new File(
+		PatchLinePositioner lp = new PatchLinePositioner(Files.toString(new File(
 				"src/test/resources/newFile.patch"), Charsets.UTF_8));
 
 		Assert.assertEquals(169, lp.size());
@@ -26,7 +26,7 @@ public class LinePositionerTest {
 	
 	@Test
 	public void inclusionsExclusion() throws IOException {
-		LinePositioner lp = new LinePositioner(Files.toString(new File(
+		PatchLinePositioner lp = new PatchLinePositioner(Files.toString(new File(
 				"src/test/resources/inclusionsExclusion.patch"), Charsets.UTF_8));
 		
 		Assert.assertEquals(6, lp.size());
