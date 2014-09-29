@@ -3,6 +3,7 @@ package com.contaazul.sonarpullrequestintegration.mojo;
 import java.io.File;
 import java.util.List;
 
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.egit.github.core.CommitFile;
 
@@ -15,17 +16,31 @@ public class ComponentConverter {
 	private final BiMap<String, String> components = HashBiMap.create();
 	private final List<MavenProject> reactorProjects;
 	private final String sonarBranch;
+	private final Log log;
 
-	public ComponentConverter(String sonarBranch, List<MavenProject> reactorProjects, List<CommitFile> files) {
+	public ComponentConverter(String sonarBranch, List<MavenProject> reactorProjects, List<CommitFile> files, Log log) {
 		this.sonarBranch = sonarBranch;
 		this.reactorProjects = reactorProjects;
+		this.log = log;
 		for (CommitFile file : files) {
 			String path = file.getFilename();
-			if (!path.endsWith( ".java" ))
+			if (log.isDebugEnabled()) {
+				log.debug("Considering file " + path);
+			}
+			// TODO Add support for multi language projects
+			if (!path.endsWith( ".java" )) {
+				if (log.isDebugEnabled()) {
+					log.debug("Removing file " + path);
+				}
 				continue;
+			}
 			String componentKey = toComponentKey( path );
-			if (componentKey != null)
-				components.put( componentKey, path );
+			if (componentKey != null) {
+				if (log.isDebugEnabled()) {
+					log.debug("Adding component " + componentKey + " for file " + path);
+				}
+				components.put(componentKey, path);
+			}
 		}
 	}
 
@@ -40,10 +55,10 @@ public class ComponentConverter {
 		MavenProject project = bestMatch.project;
 		File file = bestMatch.file;
 		String fullPath = file.getAbsolutePath();
-		
-		String sources  = project.getBasedir().getAbsolutePath();
-		String classeName = fullPath.substring( fullPath.indexOf( sources ) + sources.length()+1 ).replace(
-				File.separatorChar, '/' );
+
+		String sources  = project.getBasedir().getAbsolutePath() + "src/main/java/";
+		String classeName = fullPath.substring( fullPath.indexOf( sources ) + sources.length()+2 ).replace(
+				File.separatorChar, '.' ).replaceAll("\\.java$", "");
 		return project.getGroupId() + ":" + project.getArtifactId() + ":" + sonarBranch + ":" + classeName;
 	}
 
@@ -64,9 +79,13 @@ public class ComponentConverter {
 			File baseDir = project.getBasedir().getAbsoluteFile();
 			int longestSubstr = longestSubstr( path, baseDir.getAbsolutePath().replace( '\\', '/' ) );
 
+			if (log.isDebugEnabled()) {
+				log.debug("Basedir: " + baseDir + " path: " + path);
+			}
 			if (longestSubstr > longest) {
 				bestMatch = project;
 				longest = longestSubstr;
+				log.debug("Found new best match");
 			}
 		}
 

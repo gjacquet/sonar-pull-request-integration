@@ -7,7 +7,7 @@
 	<parent>
 		<groupId>com.contaazul.sonarpullrequestintegration</groupId>
 		<artifactId>parent</artifactId>
-		<version>0.7</version>
+		<version>0.8-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>sonar-github-pull-request-maven-plugin</artifactId>
@@ -20,10 +20,16 @@
 			<version>3.0</version>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.maven.plugin-tools</groupId>
+			<artifactId>maven-plugin-annotations</artifactId>
+			<version>3.0</version>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-core</artifactId>
 			<version>3.0</version>
 		</dependency>
+
 
 		<dependency>
 			<groupId>org.testng</groupId>
@@ -41,7 +47,7 @@
 		<dependency>
 			<groupId>org.codehaus.sonar</groupId>
 			<artifactId>sonar-ws-client</artifactId>
-			<version>4.4</version>
+			<version>4.1</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-httpclient</groupId>
@@ -77,6 +83,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.5</version>
 				<configuration>
 					<archive>
 						<manifestEntries>

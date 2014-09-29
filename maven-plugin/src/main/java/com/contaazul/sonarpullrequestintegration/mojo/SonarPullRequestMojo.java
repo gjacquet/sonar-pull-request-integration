@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.egit.github.core.CommitComment;
 import org.eclipse.egit.github.core.CommitFile;
@@ -31,88 +33,67 @@ import com.google.common.collect.Multimap;
 
 /**
  * Generate a PullRequest report. WARNING, Sonar server must be started.
- * 
- * @goal publish
- * @aggregator
  */
+@Mojo(name = "publish", aggregator = true)
 public class SonarPullRequestMojo extends AbstractMojo {
-
 	/**
 	 * Maven project info.
-	 * 
-	 * @parameter expression="${project}"
-	 * @required
-	 * @readonly
 	 */
+	@Parameter(required = true, readonly = true, defaultValue = "${project}")
 	private MavenProject project;
 
 	/**
 	 * The projects in the reactor.
-	 * 
-	 * @parameter expression="${reactorProjects}"
-	 * @readonly
 	 */
+	@Parameter(readonly = true, defaultValue = "${reactorProjects}")
 	private List<MavenProject> reactorProjects;
 
 	/**
 	 * Sonar Base URL.
-	 * 
-	 * @parameter expression="${sonar.host.url}"
-	 *            default-value="http://localhost:9000/"
-	 * @optional
 	 */
+	@Parameter(property = "sonar.host.url", defaultValue = "http://localhost:9000/")
 	private String sonarHostUrl;
 
 	/**
 	 * Branch to be used.
-	 * 
-	 * @parameter expression="${sonar.branch}"
-	 * @optional
 	 */
+	@Parameter(property = "sonar.branch")
 	private String sonarBranch;
 
 	/**
 	 * Username to access WS API.
-	 * 
-	 * @parameter expression="${sonar.ws.username}"
-	 * @optional
 	 */
+	@Parameter(property = "sonar.ws.username")
 	private String username;
 
 	/**
 	 * Password to access WS API.
-	 * 
-	 * @parameter expression="${sonar.ws.password}"
-	 * @optional
 	 */
+	@Parameter(property = "sonar.ws.password")
 	private String password;
 
 	/**
 	 * Set OAuth2 token
-	 * 
-	 * @parameter expression="${github.oauth2}"
 	 */
+	@Parameter(property = "github.oauth2")
 	private String oauth2;
 
 	/**
 	 * Github pull request ID
-	 * 
-	 * @parameter expression="${github.pullRequestId}"
 	 */
+	@Parameter(property = "github.pullRequestId")
 	private int pullRequestId;
 
 	/**
 	 * Github repository owner
-	 * 
-	 * @parameter expression="${github.repositoryOwner}"
 	 */
+	@Parameter(property = "github.repositoryOwner")
 	private String repositoryOwner;
 
 	/**
 	 * Github repository name
-	 * 
-	 * @parameter expression="${github.repositoryName}"
 	 */
+	@Parameter(property = "github.repositoryName")
 	private String repositoryName;
 
 	private Repository repository;
@@ -195,7 +176,7 @@ public class SonarPullRequestMojo extends AbstractMojo {
 		for (String path : paths) {
 			Iterator<Issue> issues = fileViolations.get( path ).iterator();
 			while (issues.hasNext()) {
-				Issue issue = (Issue) issues.next();
+				Issue issue = issues.next();
 				Integer line = issue.line();
 				if (line == null)
 					line = 1;
@@ -243,7 +224,7 @@ public class SonarPullRequestMojo extends AbstractMojo {
 	private ComponentConverter getRelatedComponents() throws IOException {
 		List<CommitFile> files = pullRequestService.getFiles( repository, pullRequestId );
 
-		return new ComponentConverter( sonarBranch, reactorProjects, files );
+		return new ComponentConverter( sonarBranch, reactorProjects, files, getLog() );
 	}
 
 	private void recordGit(Multimap<String, Issue> fileViolations, Map<String, LinePositioner> linePositioners,
@@ -318,6 +299,9 @@ public class SonarPullRequestMojo extends AbstractMojo {
 
 		HttpRequestFactory requestFactory = new HttpRequestFactory( sonarHostUrl )
 				.setLogin( username ).setPassword( password );
+		if (getLog().isDebugEnabled()) {
+			getLog().debug("Created request factory for " + sonarHostUrl + " user " + username);
+		}
 		IssueClient client = new DefaultIssueClient( requestFactory );
 
 		List<Issue> issues = Lists.newArrayList();
@@ -349,5 +333,4 @@ public class SonarPullRequestMojo extends AbstractMojo {
 		}
 		return sonarProjectId;
 	}
-
 }

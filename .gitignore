@@ -13,3 +13,9 @@ target/
 .settings/
 .classpath
 .project
+
+## intellij
+.idea
+*.iml
+atlassian-ide-plugin.xml
+

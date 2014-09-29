@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.List;
 
 import org.apache.maven.model.Build;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.egit.github.core.CommitFile;
 import org.junit.Test;
@@ -33,7 +34,7 @@ public class ComponentConverterTest {
 				new File( "src/test/resources/querydsl/querydsl-hazelcast/src/main/java" ).getCanonicalPath() );
 		projects.add( hazelcast );
 
-		ComponentConverter c = new ComponentConverter( "hazelcast", projects, commits );
+		ComponentConverter c = new ComponentConverter( "hazelcast", projects, commits, new SystemStreamLog() );
 		assertEquals(
 				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:com.mysema.query.hazelcast.AbstractIMapQuery",
 				c.pathToComponent( "/querydsl-hazelcast/src/main/java/com/mysema/query/hazelcast/AbstractIMapQuery.java" ) );
@@ -68,7 +69,7 @@ public class ComponentConverterTest {
 
 	private void runTest(List<MavenProject> projects) {
 		List<CommitFile> commits = commits();
-		ComponentConverter c = new ComponentConverter( "hazelcast", projects, commits );
+		ComponentConverter c = new ComponentConverter( "hazelcast", projects, commits, new SystemStreamLog() );
 		assertEquals(
 				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:com.mysema.query.hazelcast.AbstractIMapQuery",
 				c.pathToComponent( "/querydsl-hazelcast/src/main/java/com/mysema/query/hazelcast/AbstractIMapQuery.java" ) );
