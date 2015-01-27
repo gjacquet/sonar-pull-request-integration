@@ -56,10 +56,9 @@ public class ComponentConverter {
 		File file = bestMatch.file;
 		String fullPath = file.getAbsolutePath();
 
-		String sources  = project.getBasedir().getAbsolutePath() + "src/main/java/";
-		String classeName = fullPath.substring( fullPath.indexOf( sources ) + sources.length()+2 ).replace(
-				File.separatorChar, '.' ).replaceAll("\\.java$", "");
-		return project.getGroupId() + ":" + project.getArtifactId() + ":" + sonarBranch + ":" + classeName;
+		String sources  = project.getBasedir().getAbsolutePath();
+		String relativePath = fullPath.substring(fullPath.indexOf(sources) + sources.length() + 1);
+		return project.getGroupId() + ":" + project.getArtifactId() + ":" + sonarBranch + ":" + relativePath;
 	}
 
 	private class BestMatch {
@@ -89,9 +88,12 @@ public class ComponentConverter {
 			}
 		}
 
-		File file = new File( bestMatch.getBasedir(), path.substring( longest ) );
-		if (bestMatch != null && file.exists())
-			return new BestMatch( bestMatch, file );
+		if (bestMatch != null) {
+			File file = new File(bestMatch.getBasedir(), path.substring(longest));
+			if (file.exists()) {
+				return new BestMatch(bestMatch, file);
+			}
+		}
 
 		return null;
 	}

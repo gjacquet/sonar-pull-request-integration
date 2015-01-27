@@ -310,10 +310,11 @@ public class SonarPullRequestMojo extends AbstractMojo {
 			Issues result;
 			try {
 				getLog().debug( "component: " + component );
-				result = client.find( IssueQuery.create()
+				IssueQuery query = IssueQuery.create()
 						.componentRoots( sonarProjectId() )
-						.components( component )
-						);
+						.components( component );
+				getLog().debug("Query parameters: " + query.urlParams());
+				result = client.find(query);
 			} catch (Exception e) {
 				getLog().error( "Unable to get issues for: " + component );
 				getLog().debug( e.getMessage(), e );

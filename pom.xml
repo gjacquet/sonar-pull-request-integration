@@ -29,6 +29,19 @@
 		</developer>
 	</developers>
 
+	<distributionManagement>
+		<repository>
+			<id>inf-aws-art01</id>
+			<name>inf-aws-art01-releases</name>
+			<url>http://artifactory.appdirect.com/artifactory/ext-release-local</url>
+		</repository>
+		<snapshotRepository>
+			<id>inf-aws-art01</id>
+			<name>inf-aws-art01-snapshots</name>
+			<url>http://artifactory.appdirect.com/artifactory/ext-snapshot-local</url>
+		</snapshotRepository>
+	</distributionManagement>
+
 	<modules>
 		<module>maven-plugin</module>
 		<!-- <module>sonar-plugin</module> -->
