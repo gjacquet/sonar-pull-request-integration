@@ -312,7 +312,8 @@ public class SonarPullRequestMojo extends AbstractMojo {
 				getLog().debug( "component: " + component );
 				IssueQuery query = IssueQuery.create()
 						.componentRoots( sonarProjectId() )
-						.components( component );
+						.components( component )
+						.statuses("OPEN", "CONFIRMED", "REOPENED");
 				getLog().debug("Query parameters: " + query.urlParams());
 				result = client.find(query);
 			} catch (Exception e) {
