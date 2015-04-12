@@ -279,7 +279,7 @@ public class SonarPullRequestMojo extends AbstractMojo {
 			Iterator<Issue> issues = fileViolations.get(
 					comment.getPath() ).iterator();
 			while (issues.hasNext()) {
-				Issue issue = (Issue) issues.next();
+				Issue issue = issues.next();
 				Integer line = issue.line();
 				if (line == null)
 					line = 1;
@@ -315,7 +315,7 @@ public class SonarPullRequestMojo extends AbstractMojo {
 			try {
 				getLog().debug("component: " + component);
 				IssueQuery query = IssueQuery.create()
-						.components(sonarProjectId() + ':' + component)
+						.components(component)
 						.statuses("OPEN", "CONFIRMED", "REOPENED");
 				getLog().debug("Query parameters: " + query.urlParams());
 				result = client.find(query);

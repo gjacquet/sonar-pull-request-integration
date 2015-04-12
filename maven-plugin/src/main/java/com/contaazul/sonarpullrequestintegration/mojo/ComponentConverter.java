@@ -28,12 +28,12 @@ public class ComponentConverter {
 				log.debug("Considering file " + path);
 			}
 			// TODO Add support for multi language projects
-			if (!path.endsWith( ".java" )) {
-				if (log.isDebugEnabled()) {
-					log.debug("Removing file " + path);
-				}
-				continue;
-			}
+			//if (!path.endsWith( ".java" )) {
+			//	if (log.isDebugEnabled()) {
+			//		log.debug("Removing file " + path);
+			//	}
+			//	continue;
+			//}
 			String componentKey = toComponentKey( path );
 			if (componentKey != null) {
 				if (log.isDebugEnabled()) {
@@ -45,12 +45,18 @@ public class ComponentConverter {
 	}
 
 	private String toComponentKey(String path) {
-		if (path == null)
+		if (path == null) {
+			log.debug("Path is null");
 			return null;
+		}
 
 		BestMatch bestMatch = find( path );
-		if (bestMatch == null)
+		if (bestMatch == null) {
+			if (log.isDebugEnabled()) {
+				log.debug("Best match is null for " + path);
+			}
 			return null;
+		}
 
 		MavenProject project = bestMatch.project;
 		File file = bestMatch.file;
@@ -58,7 +64,13 @@ public class ComponentConverter {
 
 		String sources  = project.getBasedir().getAbsolutePath();
 		String relativePath = fullPath.substring(fullPath.indexOf(sources) + sources.length() + 1);
-		return project.getGroupId() + ":" + project.getArtifactId() + ":" + sonarBranch + ":" + relativePath;
+		String componentKey = project.getGroupId() + ":" + project.getArtifactId() + ":" + sonarBranch + ":" + relativePath;
+
+		if (log.isDebugEnabled()) {
+			log.debug("Component key for " + path + ": " + componentKey);
+		}
+
+		return componentKey;
 	}
 
 	private class BestMatch {
@@ -74,6 +86,7 @@ public class ComponentConverter {
 	private BestMatch find(String path) {
 		int longest = -1;
 		MavenProject bestMatch = null;
+		File bestMatchFile = null;
 		for (MavenProject project : reactorProjects) {
 			File baseDir = project.getBasedir().getAbsoluteFile();
 			int longestSubstr = longestSubstr( path, baseDir.getAbsolutePath().replace( '\\', '/' ) );
@@ -82,18 +95,19 @@ public class ComponentConverter {
 				log.debug("Basedir: " + baseDir + " path: " + path);
 			}
 			if (longestSubstr > longest) {
-				bestMatch = project;
-				longest = longestSubstr;
-				log.debug("Found new best match");
+				File file = new File(project.getBasedir(), path.substring(longestSubstr));
+				if (file.exists()) {
+					bestMatchFile = file;
+					bestMatch = project;
+					longest = longestSubstr;
+					log.debug("Found new best match");
+				}
 			}
 		}
 
-		if (bestMatch != null) {
-			File file = new File(bestMatch.getBasedir(), path.substring(longest));
-			if (file.exists()) {
-				log.debug("Best match: " + bestMatch.getArtifactId() + " for " + file.getAbsolutePath());
-				return new BestMatch(bestMatch, file);
-			}
+		if (bestMatch != null && bestMatchFile != null) {
+			log.debug("Best match: " + bestMatch.getArtifactId() + " for " + bestMatchFile.getAbsolutePath());
+			return new BestMatch(bestMatch, bestMatchFile);
 		}
 
 		return null;
