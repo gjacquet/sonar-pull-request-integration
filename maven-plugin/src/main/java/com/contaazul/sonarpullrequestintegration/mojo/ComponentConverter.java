@@ -91,6 +91,7 @@ public class ComponentConverter {
 		if (bestMatch != null) {
 			File file = new File(bestMatch.getBasedir(), path.substring(longest));
 			if (file.exists()) {
+				log.debug("Best match: " + bestMatch.getArtifactId() + " for " + file.getAbsolutePath());
 				return new BestMatch(bestMatch, file);
 			}
 		}

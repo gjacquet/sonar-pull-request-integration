@@ -30,6 +30,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.net.UrlEscapers;
 
 /**
  * Generate a PullRequest report. WARNING, Sonar server must be started.
@@ -238,8 +239,11 @@ public class SonarPullRequestMojo extends AbstractMojo {
 			String path = entry.getKey();
 
 			CommitComment comment = new CommitComment();
-			comment.setBody( entry.getValue().message() );
-			comment.setCommitId( filesSha.get( path ) );
+			Issue issue = entry.getValue();
+			comment.setBody( issue.message() + "\n\n"
+					+ "- Issue: " + sonarHostUrl + "/issues/search#issues=" + issue.key() + '\n'
+					+ "- Rule: " + sonarHostUrl + "/coding_rules#rule_key=" + UrlEscapers.urlFragmentEscaper().escape(issue.ruleKey()));
+			comment.setCommitId(filesSha.get( path ) );
 			comment.setPath( path );
 
 			Integer line = entry.getValue().line();
@@ -309,10 +313,9 @@ public class SonarPullRequestMojo extends AbstractMojo {
 		for (String component : resources.getComponents()) {
 			Issues result;
 			try {
-				getLog().debug( "component: " + component );
+				getLog().debug("component: " + component);
 				IssueQuery query = IssueQuery.create()
-						.componentRoots( sonarProjectId() )
-						.components( component )
+						.components(sonarProjectId() + ':' + component)
 						.statuses("OPEN", "CONFIRMED", "REOPENED");
 				getLog().debug("Query parameters: " + query.urlParams());
 				result = client.find(query);
