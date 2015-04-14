@@ -44,6 +44,7 @@
 
 	<modules>
 		<module>maven-plugin</module>
+		<module>sonar-preview-pr-integration</module>
 		<!-- <module>sonar-plugin</module> -->
 	</modules>
 
