@@ -42,9 +42,18 @@
 		</snapshotRepository>
 	</distributionManagement>
 
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<groovy.version>2.4.3</groovy.version>
+		<groovy-eclipse-compiler.version>2.9.2-01</groovy-eclipse-compiler.version>
+		<groovy-eclipse-batch.version>${groovy.version}-01</groovy-eclipse-batch.version>
+	</properties>
+
 	<modules>
 		<module>maven-plugin</module>
 		<module>sonar-preview-pr-integration</module>
+		<module>guava-extension</module>
 		<!-- <module>sonar-plugin</module> -->
 	</modules>
 
@@ -85,4 +94,21 @@
 			</plugins>
 		</pluginManagement>
 	</build>
+
+	<dependencyManagement>
+		<dependencies>
+			<!-- Groovy -->
+			<dependency>
+				<groupId>org.codehaus.groovy</groupId>
+				<artifactId>groovy-all</artifactId>
+				<version>${groovy.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.google.guava</groupId>
+				<artifactId>guava</artifactId>
+				<version>18.0</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 </project>

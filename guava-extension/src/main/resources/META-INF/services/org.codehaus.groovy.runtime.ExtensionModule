@@ -1,0 +1,4 @@
+moduleName=${project.artifactId}
+moduleVersion=${project.version}
+extensionClasses=com.appdirect.sonar.guava.MultimapExtension
+staticExtensionClasses=

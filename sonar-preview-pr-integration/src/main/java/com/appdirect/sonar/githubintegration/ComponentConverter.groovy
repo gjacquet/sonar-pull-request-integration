@@ -49,7 +49,7 @@ class ComponentConverter {
 
 		String sources  = project.getBasedir().getAbsolutePath();
 		String relativePath = fullPath.substring(fullPath.indexOf(sources) + sources.length() + 1);
-		String componentKey = "${project.groupId}:${project.artifactId}:${sonarBranch}:${relativePath}"
+		String componentKey = "${project.groupId}:${project.artifactId}${sonarBranch ? ':' + sonarBranch : ''}:${relativePath}"
 
 		log.debug("Component key for {}: {}", path, componentKey);
 
@@ -57,13 +57,8 @@ class ComponentConverter {
 	}
 
 	private class BestMatch {
-		private final MavenProject project;
-		private final File file;
-
-		private BestMatch(MavenProject project, File file) {
-			this.project = project;
-			this.file = file;
-		}
+		MavenProject project;
+		File file;
 	}
 
 	private BestMatch find(String path) {
@@ -89,7 +84,8 @@ class ComponentConverter {
 
 		if (bestMatch != null && bestMatchFile != null) {
 			log.debug("Best match: {} for {}", bestMatch.artifactId, bestMatchFile.absolutePath);
-			return new BestMatch(bestMatch, bestMatchFile);
+			return new BestMatch([ project: bestMatch, file: bestMatchFile ]);
+
 		}
 
 		return null;
@@ -144,5 +140,4 @@ class ComponentConverter {
 	public String componentToPath(String componentKey) {
 		return sonarComponents.get( componentKey );
 	}
-
 }

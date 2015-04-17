@@ -26,9 +26,6 @@ public class PatchLinePositioner implements LinePositioner {
 		}
 	}
 
-	/* (non-Javadoc)
-	 * @see com.contaazul.sonarpullrequestintegration.mojo.LinePositioner#toPostion(int)
-	 */
 	public int toPostion(int line) {
 		if (lineToPosition.containsKey( line ))
 			return lineToPosition.get( line );
