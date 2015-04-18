@@ -75,6 +75,20 @@ class SonarPullRequestMojo extends AbstractMojo {
 	@Parameter(property = "sonar.branch")
 	String sonarBranch
 
+	/**
+	 * Github.
+	 */
+	final Github github;
+
+	public SonarPullRequestMojo() {
+
+	}
+
+
+	public SonarPullRequestMojo(Github github) {
+		this.github = github
+	}
+
 	public void execute() throws MojoExecutionException {
 		Github github = this.createGithub()
 		Repo repo = github.repos().get(new Coordinates.Simple(this.repositoryOwner, this.repositoryName))
@@ -107,7 +121,7 @@ class SonarPullRequestMojo extends AbstractMojo {
 		removeIssuesAlreadyReported(pull, fileViolations, linePositioners)
 		log.info('Files with new issues: {} ({} issues)', fileViolations.keySet().size(), fileViolations.size())
 
-		//recordGit(pull, fileViolations, linePositioners, filesSha)
+		recordGit(pull, fileViolations, linePositioners, filesSha)
 	}
 
 	private Github createGithub() {
@@ -190,10 +204,9 @@ class SonarPullRequestMojo extends AbstractMojo {
 
 			comments.any { comment ->
 				String body = comment.json().getString('body')
-				int commentPosition = comment.json().getInt('position')
 				String commentPath = comment.json().getString('path')
 
-				commentPath == path && (body.contains(issue.key()) || (commentPosition == position && body.contains(issue.message())))
+				!comment.json().isNull('position') && commentPath == path && (body.contains(issue.key()) || (comment.json().getInt('position') == position && body.contains(issue.message())))
 			}
 		}
 	}
@@ -202,10 +215,11 @@ class SonarPullRequestMojo extends AbstractMojo {
 		SonarIssues sonarIssues = new IssueJsonParser().parseIssues(new File(sonarReportPath).text)
 
 		resources.getComponents().collect { component ->
-			log.debug("Component: {}", component);
+			SonarPullRequestMojo.log.debug('Component: {}', component);
 
-			sonarIssues.list().grep { issue ->
-				issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ]
+			sonarIssues.list().grep { SonarIssue issue ->
+				SonarPullRequestMojo.log.debug('Issue {}, component key {}, component {}, status {}, result {}', issue.key(), issue.componentKey(), component, issue.status(), issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ])
+				issue.componentKey() == component && issue.status() in [ 'OPEN', 'CONFIRMED', 'REOPENED' ]
 			}
 		}.inject([]) { acc, val ->
 			acc + val

@@ -9,7 +9,7 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>sonar-preview-pr-integration</artifactId>
+	<artifactId>sonar-preview-pr-integration-maven-plugin</artifactId>
 	<packaging>maven-plugin</packaging>
 
 	<properties>
