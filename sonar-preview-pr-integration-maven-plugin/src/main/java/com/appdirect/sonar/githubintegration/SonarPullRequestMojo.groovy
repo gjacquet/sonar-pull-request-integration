@@ -10,8 +10,6 @@ import org.eclipse.egit.github.core.RepositoryCommit
 import org.eclipse.egit.github.core.client.GitHubClient
 import org.eclipse.egit.github.core.service.PullRequestService
 import org.eclipse.egit.github.core.service.RepositoryService
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.sonar.wsclient.issue.Issue as SonarIssue
 import org.sonar.wsclient.issue.Issues as SonarIssues
 import org.sonar.wsclient.issue.internal.IssueJsonParser
@@ -26,7 +24,6 @@ import com.google.common.net.UrlEscapers
 
 @Mojo(name = 'publish', aggregator = true)
 class SonarPullRequestMojo extends AbstractMojo {
-	private static final Logger LOG = LoggerFactory.getLogger(SonarPullRequestMojo)
 	/**
 	 * The projects in the reactor.
 	 */
@@ -85,31 +82,31 @@ class SonarPullRequestMojo extends AbstractMojo {
 		List<CommitFile> files = pullRequestService.getFiles(repository, pullRequestId)
 		ComponentConverter componentConverter = getRelatedComponents(files)
 
-		LOG.info('{} files affected', componentConverter.size())
+		getLog().info("${componentConverter.size()} files affected")
 
-		List<SonarIssue> issues = getIssues(componentConverter);
-		LOG.info( "Found {} issues", issues.size());
+		List<SonarIssue> issues = getIssues(componentConverter)
+		getLog().info("Found ${issues.size()} issues")
 
 		Multimap<String, SonarIssue> fileViolations = issues.inject(LinkedHashMultimap.create()) { violations, issue ->
 			String path = componentConverter.componentToPath(issue.componentKey())
 			violations << [ (path): issue ]
 		}
 
-		Map<String, LinePositioner> linePositioners;
+		Map<String, LinePositioner> linePositioners
 		try {
-			linePositioners = createLinePositioners(files);
+			linePositioners = createLinePositioners(files)
 		} catch (IOException e) {
-			throw new MojoExecutionException('Unable to get commits on github', e );
+			throw new MojoExecutionException('Unable to get commits on github', e)
 		}
 
 		Map<String, String> filesSha = getFilesSha(files)
 
-		removeIssuesOutsideBounds(fileViolations, linePositioners);
-		LOG.info('Found {} files with issues ({} issues) ', fileViolations.keySet().size(), fileViolations.size())
+		removeIssuesOutsideBounds(fileViolations, linePositioners)
+		getLog().info("Found ${fileViolations.keySet().size()} files with issues (${fileViolations.size()} issues)")
 
 		List<CommitComment> comments = pullRequestService.getComments(repository, pullRequestId)
 		removeIssuesAlreadyReported(comments, fileViolations, linePositioners)
-		LOG.info('Files with new issues: {} ({} issues)', fileViolations.keySet().size(), fileViolations.size())
+		getLog().info("Files with new issues: ${fileViolations.keySet().size()} (${fileViolations.size()} issues)")
 
 		List<RepositoryCommit> commits = pullRequestService.getCommits(repository, pullRequestId)
 		recordGit(commits, pullRequestService, repository, fileViolations, linePositioners, filesSha)
@@ -132,7 +129,7 @@ class SonarPullRequestMojo extends AbstractMojo {
 		Map<String, LinePositioner> linePositioners = files.findAll {
 			!it.patch != null
 		}.inject([:]) { positioners, commitFile ->
-			LinePositioner positioner;
+			LinePositioner positioner
 			if (commitFile.status == 'added') {
 				positioner = new OneToOneLinePositioner()
 			} else {
@@ -142,12 +139,12 @@ class SonarPullRequestMojo extends AbstractMojo {
 			positioners << [ (commitFile.filename): positioner ]
 		}
 
-		return linePositioners;
+		return linePositioners
 	}
 
 
 	private ComponentConverter getRelatedComponents(List<CommitFile> files) throws IOException {
-		return new ComponentConverter(sonarBranch, reactorProjects, files);
+		return new ComponentConverter(sonarBranch, reactorProjects, files, getLog())
 	}
 
 	private void recordGit(List<RepositoryCommit> commits, PullRequestService pullRequestService, Repository repository, Multimap<String, SonarIssue> fileViolations, Map<String, LinePositioner> linePositioners, Map<String, String> filesSha) throws IOException {
@@ -160,12 +157,12 @@ class SonarPullRequestMojo extends AbstractMojo {
 						|${issue.message()}
 						|
 						|
-						|- Issue: ${sonarHostUrl}/issues/search#issues=${issue.key()}
-						|- Rule: ${sonarHostUrl}/coding_rules#rule_key=${UrlEscapers.urlFragmentEscaper().escape(issue.ruleKey())}""".stripMargin()
+						|- Issue: ${sonarHostUrl}${sonarHostUrl.endsWith('/') ? '' : '/'}issues/search#issues=${issue.key()}
+						|- Rule: ${sonarHostUrl}${sonarHostUrl.endsWith('/') ? '' : '/'}coding_rules#rule_key=${UrlEscapers.urlFragmentEscaper().escape(issue.ruleKey())}""".stripMargin()
 				String commitId = filesSha[path]
 				int position = linePositioners.get(path).toPosition(issue.line())
 
-				LOG.debug("Path: {}, line: {}, position: {}", path, issue.line(), position);
+				getLog().debug("Path: ${path}, line: ${issue.line()}, position: ${position}")
 				CommitComment comment = new CommitComment()
 				comment.body = body
 				comment.commitId = commitId
@@ -173,9 +170,9 @@ class SonarPullRequestMojo extends AbstractMojo {
 				comment.position = position
 				comment.setLine(issue.line())
 				try {
-					pullRequestService.createComment(repository, pullRequestId, comment);
+					pullRequestService.createComment(repository, pullRequestId, comment)
 				} catch (IOException e) {
-					LOG.error("Unable to comment on: {}", path, e);
+					getLog().error("Unable to comment on: ${path}", e)
 				}
 			}
 		}
@@ -185,7 +182,7 @@ class SonarPullRequestMojo extends AbstractMojo {
 		fileViolations.entries().removeAll { entry ->
 			String path = entry.key
 			SonarIssue issue = entry.value
-			int position = linePositioners.get(path).toPosition(issue.line());
+			int position = linePositioners.get(path).toPosition(issue.line())
 
 			comments.any { comment ->
 				String body = comment.body
@@ -200,10 +197,10 @@ class SonarPullRequestMojo extends AbstractMojo {
 		SonarIssues sonarIssues = new IssueJsonParser().parseIssues(new File(sonarReportPath).text)
 
 		resources.getComponents().collect { component ->
-			LOG.debug('Component: {}', component);
+			getLog().debug("Component: ${component}")
 
 			sonarIssues.list().grep { SonarIssue issue ->
-				LOG.debug('Issue {}, component key {}, component {}, status {}, result {}', issue.key(), issue.componentKey(), component, issue.status(), issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ])
+				getLog().debug("Issue ${issue.key()}, component key ${issue.componentKey()}, component ${component}, status ${issue.status()}")
 				issue.componentKey() == component && issue.status() in [ 'OPEN', 'CONFIRMED', 'REOPENED' ]
 			}
 		}.inject([]) { acc, val ->

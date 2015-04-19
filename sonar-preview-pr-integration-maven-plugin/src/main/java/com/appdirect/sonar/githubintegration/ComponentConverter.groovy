@@ -1,33 +1,31 @@
 package com.appdirect.sonar.githubintegration
-
+import org.apache.maven.plugin.logging.Log
 import org.apache.maven.project.MavenProject
 import org.eclipse.egit.github.core.CommitFile
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import com.google.common.collect.BiMap
 import com.google.common.collect.HashBiMap
 import com.google.common.collect.Lists
 
 class ComponentConverter {
-	private static final Logger LOG = LoggerFactory.getLogger(ComponentConverter)
+	private final BiMap<String, String> sonarComponents
+	private final List<MavenProject> reactorProjects
+	private final String sonarBranch
+	private final Log log
 
-	private final BiMap<String, String> sonarComponents;
-	private final List<MavenProject> reactorProjects;
-	private final String sonarBranch;
-
-	public ComponentConverter(String sonarBranch, List<MavenProject> reactorProjects, List<CommitFile> files) {
+	public ComponentConverter(String sonarBranch, List<MavenProject> reactorProjects, List<CommitFile> files, Log log) {
 		this.sonarComponents = HashBiMap.create()
 		this.sonarBranch = sonarBranch
 		this.reactorProjects = reactorProjects
+		this.log = log
 
 		files.each { file ->
 			String path = file.filename;
-			LOG.debug("Considering file {}", path)
+			log.debug("Considering file ${path}")
 
 			String componentKey = toComponentKey(path)
 			if (componentKey) {
-				LOG.debug("Adding component {} for file {}", componentKey, path)
+				log.debug("Adding component ${componentKey} for file ${path}")
 				this.sonarComponents.put(componentKey, path)
 			}
 		}
@@ -35,13 +33,13 @@ class ComponentConverter {
 
 	private String toComponentKey(String path) {
 		if (!path) {
-			LOG.debug("Path is null")
+			log.debug('Path is null')
 			return null
 		}
 
 		BestMatch bestMatch = find(path)
 		if (!bestMatch) {
-			LOG.debug("Best match is null for {}", path)
+			log.debug("Best match is null for ${path}")
 			return null
 		}
 
@@ -53,7 +51,7 @@ class ComponentConverter {
 		String relativePath = fullPath.substring(fullPath.indexOf(sources) + sources.length() + 1);
 		String componentKey = "${project.groupId}:${project.artifactId}${sonarBranch ? ':' + sonarBranch : ''}:${relativePath}"
 
-		LOG.debug("Component key for {}: {}", path, componentKey);
+		log.debug("Component key for ${path}: ${componentKey}");
 
 		return componentKey
 	}
@@ -72,20 +70,20 @@ class ComponentConverter {
 			File baseDir = project.getBasedir().getAbsoluteFile();
 			int longestSubstr = longestSubstr(path, baseDir.getAbsolutePath().replace( '\\', '/' ) );
 
-			LOG.debug("Basedir: {}, path: {}", baseDir, path);
+			log.debug("Basedir: ${baseDir}, path: ${path}");
 			if (longestSubstr > longest) {
 				File file = new File(project.getBasedir(), path.substring(longestSubstr));
 				if (file.exists()) {
 					bestMatchFile = file;
 					bestMatch = project;
 					longest = longestSubstr;
-					LOG.debug("Found new best match");
+					log.debug('Found new best match');
 				}
 			}
 		}
 
 		if (bestMatch != null && bestMatchFile != null) {
-			LOG.debug("Best match: {} for {}", bestMatch.artifactId, bestMatchFile.absolutePath);
+			log.debug("Best match: ${bestMatch.artifactId} for ${bestMatchFile.absolutePath}");
 			return new BestMatch([ project: bestMatch, file: bestMatchFile ]);
 
 		}

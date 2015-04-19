@@ -44,19 +44,11 @@
 			<artifactId>maven-plugin-annotations</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.codehaus.plexus</groupId>
-			<artifactId>plexus-component-annotations</artifactId>
-		</dependency>
 
 		<!-- Github -->
 		<dependency>
 			<groupId>org.eclipse.mylyn.github</groupId>
 			<artifactId>org.eclipse.egit.github.core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.glassfish</groupId>
-			<artifactId>javax.json</artifactId>
 		</dependency>
 
 		<!-- Sonar -->
@@ -69,11 +61,6 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
