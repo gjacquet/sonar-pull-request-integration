@@ -1,4 +1,4 @@
-package com.appdirect.sonar.guava
+package com.appdirect.sonar.groovy
 import com.google.common.collect.LinkedHashMultimap
 import com.google.common.collect.Multimap
 import com.google.common.collect.Multimaps

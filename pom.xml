@@ -45,6 +45,8 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+		<maven.version>3.2.1</maven.version>
+		<maven-plugin-annotations.version>3.4</maven-plugin-annotations.version>
 		<groovy.version>2.4.3</groovy.version>
 		<groovy-eclipse-compiler.version>2.9.2-01</groovy-eclipse-compiler.version>
 		<groovy-eclipse-batch.version>${groovy.version}-01</groovy-eclipse-batch.version>
@@ -52,45 +54,46 @@
 
 	<modules>
 		<module>maven-plugin</module>
-		<module>sonar-preview-pr-integration</module>
-		<module>guava-extension</module>
-		<!-- <module>sonar-plugin</module> -->
+		<module>groovy-extension</module>
+		<module>sonar-preview-pr-integration-maven-plugin</module>
 	</modules>
 
 	<build>
 		<pluginManagement>
 			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
 				<plugin>
-					<groupId>org.eclipse.m2e</groupId>
-					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.0</version>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.3</version>
 					<configuration>
-						<lifecycleMappingMetadata>
-							<pluginExecutions>
-								<pluginExecution>
-									<pluginExecutionFilter>
-										<groupId>
-											org.apache.maven.plugins
-										</groupId>
-										<artifactId>
-											maven-plugin-plugin
-										</artifactId>
-										<versionRange>
-											[3.2,)
-										</versionRange>
-										<goals>
-											<goal>descriptor</goal>
-										</goals>
-									</pluginExecutionFilter>
-									<action>
-										<ignore></ignore>
-									</action>
-								</pluginExecution>
-							</pluginExecutions>
-						</lifecycleMappingMetadata>
+						<compilerId>groovy-eclipse-compiler</compilerId>
 					</configuration>
+					<dependencies>
+						<dependency>
+							<groupId>org.codehaus.groovy</groupId>
+							<artifactId>groovy-eclipse-compiler</artifactId>
+							<version>${groovy-eclipse-compiler.version}</version>
+						</dependency>
+						<dependency>
+							<groupId>org.codehaus.groovy</groupId>
+							<artifactId>groovy-eclipse-batch</artifactId>
+							<version>${groovy-eclipse-batch.version}</version>
+						</dependency>
+					</dependencies>
 				</plugin>
+
+				<plugin>
+					<groupId>org.codehaus.plexus</groupId>
+					<artifactId>plexus-maven-plugin</artifactId>
+					<version>1.5.5</version>
+					<executions>
+						<execution>
+							<goals>
+								<goal>generate-metadata</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+
 			</plugins>
 		</pluginManagement>
 	</build>
@@ -100,7 +103,7 @@
 			<!-- Groovy -->
 			<dependency>
 				<groupId>org.codehaus.groovy</groupId>
-				<artifactId>groovy-all</artifactId>
+				<artifactId>groovy</artifactId>
 				<version>${groovy.version}</version>
 			</dependency>
 
@@ -109,6 +112,64 @@
 				<artifactId>guava</artifactId>
 				<version>18.0</version>
 			</dependency>
+			<dependency>
+				<groupId>org.slf4j</groupId>
+				<artifactId>slf4j-api</artifactId>
+				<version>1.7.5</version>
+			</dependency>
+			<dependency>
+				<groupId>com.google.code.gson</groupId>
+				<artifactId>gson</artifactId>
+				<version>2.3.1</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.glassfish</groupId>
+				<artifactId>javax.json</artifactId>
+				<version>1.0.4</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.eclipse.mylyn.github</groupId>
+				<artifactId>org.eclipse.egit.github.core</artifactId>
+				<version>3.7.0.201502260915-r</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.codehaus.sonar</groupId>
+				<artifactId>sonar-ws-client</artifactId>
+				<version>5.1</version>
+			</dependency>
+
+			<!-- Maven -->
+			<dependency>
+				<groupId>org.apache.maven</groupId>
+				<artifactId>maven-plugin-api</artifactId>
+				<version>${maven.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.maven</groupId>
+				<artifactId>maven-core</artifactId>
+				<version>${maven.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.maven.plugin-tools</groupId>
+				<artifactId>maven-plugin-annotations</artifactId>
+				<version>${maven-plugin-annotations.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.codehaus.plexus</groupId>
+				<artifactId>plexus-component-annotations</artifactId>
+				<version>1.5.5</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+	<repositories>
+		<repository>
+			<id>egit-releases</id>
+			<name>egit-releases</name>
+			<url>https://repo.eclipse.org/content/repositories/egit-releases</url>
+		</repository>
+	</repositories>
 </project>

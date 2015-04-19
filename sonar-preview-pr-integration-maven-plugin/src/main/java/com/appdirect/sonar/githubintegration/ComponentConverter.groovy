@@ -1,26 +1,28 @@
 package com.appdirect.sonar.githubintegration
-import javax.json.JsonObject
 
 import org.apache.maven.project.MavenProject
+import org.eclipse.egit.github.core.CommitFile
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 import com.google.common.collect.BiMap
 import com.google.common.collect.HashBiMap
 import com.google.common.collect.Lists
-import groovy.util.logging.Slf4j
 
-@Slf4j
 class ComponentConverter {
+	private static final Logger log = LoggerFactory.getLogger(ComponentConverter)
+
 	private final BiMap<String, String> sonarComponents;
 	private final List<MavenProject> reactorProjects;
 	private final String sonarBranch;
 
-	public ComponentConverter(String sonarBranch, List<MavenProject> reactorProjects, Iterable<JsonObject> files) {
+	public ComponentConverter(String sonarBranch, List<MavenProject> reactorProjects, List<CommitFile> files) {
 		this.sonarComponents = HashBiMap.create()
 		this.sonarBranch = sonarBranch
 		this.reactorProjects = reactorProjects
 
 		files.each { file ->
-			String path = file.getString('filename');
+			String path = file.filename;
 			log.debug("Considering file {}", path)
 
 			String componentKey = toComponentKey(path)
@@ -40,7 +42,7 @@ class ComponentConverter {
 		BestMatch bestMatch = find(path)
 		if (!bestMatch) {
 			log.debug("Best match is null for {}", path)
-			return null;
+			return null
 		}
 
 		MavenProject project = bestMatch.project;

@@ -1,29 +1,32 @@
-import javax.json.JsonObject
-
 import org.apache.maven.plugin.AbstractMojo
 import org.apache.maven.plugin.MojoExecutionException
 import org.apache.maven.plugins.annotations.Mojo
 import org.apache.maven.plugins.annotations.Parameter
 import org.apache.maven.project.MavenProject
+import org.eclipse.egit.github.core.CommitComment
+import org.eclipse.egit.github.core.CommitFile
+import org.eclipse.egit.github.core.Repository
+import org.eclipse.egit.github.core.RepositoryCommit
+import org.eclipse.egit.github.core.client.GitHubClient
+import org.eclipse.egit.github.core.service.PullRequestService
+import org.eclipse.egit.github.core.service.RepositoryService
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.sonar.wsclient.issue.Issue as SonarIssue
 import org.sonar.wsclient.issue.Issues as SonarIssues
 import org.sonar.wsclient.issue.internal.IssueJsonParser
 
-import com.appdirect.sonar.githubintegration.*
+import com.appdirect.sonar.githubintegration.ComponentConverter
+import com.appdirect.sonar.githubintegration.LinePositioner
+import com.appdirect.sonar.githubintegration.OneToOneLinePositioner
+import com.appdirect.sonar.githubintegration.PatchLinePositioner
 import com.google.common.collect.LinkedHashMultimap
 import com.google.common.collect.Multimap
 import com.google.common.net.UrlEscapers
-import com.jcabi.github.*
-import com.jcabi.github.mock.MkGithub
-import groovy.util.logging.Slf4j
 
-@Slf4j
 @Mojo(name = 'publish', aggregator = true)
 class SonarPullRequestMojo extends AbstractMojo {
-	static {
-		Multimap.withTraits(GroovyMultimap)
-	}
-
+	private static final Logger log = LoggerFactory.getLogger(SonarPullRequestMojo)
 	/**
 	 * The projects in the reactor.
 	 */
@@ -36,14 +39,11 @@ class SonarPullRequestMojo extends AbstractMojo {
 	@Parameter(property = 'sonar.host.url', defaultValue = 'http://localhost:9000/')
 	String sonarHostUrl
 
+	/**
+	 * Sonar JSON report path.
+	 */
 	@Parameter(property = 'sonar.report.path', defaultValue = '${project.build.directory}/sonar/sonar-report.json')
 	String sonarReportPath
-
-	/**
-	 * Set OAuth2 token
-	 */
-	@Parameter(property = 'github.mock', defaultValue = 'false')
-	boolean mockGithub
 
 	/**
 	 * Set OAuth2 token
@@ -75,26 +75,15 @@ class SonarPullRequestMojo extends AbstractMojo {
 	@Parameter(property = "sonar.branch")
 	String sonarBranch
 
-	/**
-	 * Github.
-	 */
-	final Github github;
-
-	public SonarPullRequestMojo() {
-
-	}
-
-
-	public SonarPullRequestMojo(Github github) {
-		this.github = github
-	}
-
 	public void execute() throws MojoExecutionException {
-		Github github = this.createGithub()
-		Repo repo = github.repos().get(new Coordinates.Simple(this.repositoryOwner, this.repositoryName))
+		GitHubClient client = new GitHubClient().setOAuth2Token(oauth2)
+		PullRequestService pullRequestService = new PullRequestService(client)
 
-		Pull pull = repo.pulls().get(pullRequestId)
-		ComponentConverter componentConverter = getRelatedComponents(pull)
+		RepositoryService repositoryService = new RepositoryService(client)
+		Repository repository = repositoryService.getRepository(repositoryOwner, repositoryName)
+
+		List<CommitFile> files = pullRequestService.getFiles(repository, pullRequestId)
+		ComponentConverter componentConverter = getRelatedComponents(files)
 
 		log.info('{} files affected', componentConverter.size())
 
@@ -108,33 +97,27 @@ class SonarPullRequestMojo extends AbstractMojo {
 
 		Map<String, LinePositioner> linePositioners;
 		try {
-			linePositioners = createLinePositioners(pull);
+			linePositioners = createLinePositioners(files);
 		} catch (IOException e) {
 			throw new MojoExecutionException('Unable to get commits on github', e );
 		}
 
-		Map<String, String> filesSha = getFilesSha(pull)
+		Map<String, String> filesSha = getFilesSha(files)
 
 		removeIssuesOutsideBounds(fileViolations, linePositioners);
 		log.info('Found {} files with issues ({} issues) ', fileViolations.keySet().size(), fileViolations.size())
 
-		removeIssuesAlreadyReported(pull, fileViolations, linePositioners)
+		List<CommitComment> comments = pullRequestService.getComments(repository, pullRequestId)
+		removeIssuesAlreadyReported(comments, fileViolations, linePositioners)
 		log.info('Files with new issues: {} ({} issues)', fileViolations.keySet().size(), fileViolations.size())
 
-		recordGit(pull, fileViolations, linePositioners, filesSha)
+		List<RepositoryCommit> commits = pullRequestService.getCommits(repository, pullRequestId)
+		recordGit(commits, pullRequestService, repository, fileViolations, linePositioners, filesSha)
 	}
 
-	private Github createGithub() {
-		if (mockGithub) {
-			MkGithub mock = new MkGithub()
-		} else {
-			new RtGithub(this.oauth2)
-		}
-	}
-
-	private Map<String, String> getFilesSha(Pull pull) {
-		pull.files().inject([:]) { map, commitFile ->
-			map << [ (commitFile.getString('filename')): commitFile.getString('blob_url').replaceAll( ".*blob/", "" ).replaceAll( "/.*", "" ) ]
+	private Map<String, String> getFilesSha(List<CommitFile> files) {
+		files.inject([:]) { map, commitFile ->
+			map << [ (commitFile.filename): commitFile.blobUrl.replaceAll( ".*blob/", "" ).replaceAll( "/.*", "" ) ]
 		}
 	}
 
@@ -145,32 +128,30 @@ class SonarPullRequestMojo extends AbstractMojo {
 		}
 	}
 
-	private Map<String, LinePositioner> createLinePositioners(Pull pull) throws IOException {
-		Map<String, LinePositioner> linePositioners = pull.files().findAll {
-			!it.isNull('patch')
+	private Map<String, LinePositioner> createLinePositioners(List<CommitFile> files) throws IOException {
+		Map<String, LinePositioner> linePositioners = files.findAll {
+			!it.patch != null
 		}.inject([:]) { positioners, commitFile ->
 			LinePositioner positioner;
-			if (commitFile.getString('status') == 'added') {
+			if (commitFile.status == 'added') {
 				positioner = new OneToOneLinePositioner()
 			} else {
-				positioner = new PatchLinePositioner(commitFile.getString('patch'))
+				positioner = new PatchLinePositioner(commitFile.patch)
 			}
 
-			positioners << [ (commitFile.getString('filename')): positioner ]
+			positioners << [ (commitFile.filename): positioner ]
 		}
 
 		return linePositioners;
 	}
 
 
-	private ComponentConverter getRelatedComponents(Pull pull) throws IOException {
-		Iterable<JsonObject> files = pull.files()
-
+	private ComponentConverter getRelatedComponents(List<CommitFile> files) throws IOException {
 		return new ComponentConverter(sonarBranch, reactorProjects, files);
 	}
 
-	private void recordGit(Pull pull, Multimap<String, SonarIssue> fileViolations, Map<String, LinePositioner> linePositioners, Map<String, String> filesSha) throws IOException {
-		if (pull.commits().any()) {
+	private void recordGit(List<RepositoryCommit> commits, PullRequestService pullRequestService, Repository repository, Multimap<String, SonarIssue> fileViolations, Map<String, LinePositioner> linePositioners, Map<String, String> filesSha) throws IOException {
+		if (commits.any()) {
 			fileViolations.entries().each { entry ->
 				String path = entry.getKey()
 				SonarIssue issue = entry.getValue()
@@ -185,8 +166,14 @@ class SonarPullRequestMojo extends AbstractMojo {
 				int position = linePositioners.get(path).toPosition(issue.line())
 
 				log.debug("Path: {}, line: {}, position: {}", path, issue.line(), position);
+				CommitComment comment = new CommitComment()
+				comment.body = body
+				comment.commitId = commitId
+				comment.path = path
+				comment.position = position
+				comment.setLine(issue.line())
 				try {
-					pull.comments().post(body, commitId, path, position)
+					pullRequestService.createComment(repository, pullRequestId, comment);
 				} catch (IOException e) {
 					log.error("Unable to comment on: {}", path, e);
 				}
@@ -194,19 +181,17 @@ class SonarPullRequestMojo extends AbstractMojo {
 		}
 	}
 
-	private void removeIssuesAlreadyReported(Pull pull, Multimap<String,SonarIssue> fileViolations,
-											 Map<String, LinePositioner> linePositioners) throws MojoExecutionException {
-		List<PullComment> comments = pull.comments().iterate(pull.number(), [:]).collect()
+	private void removeIssuesAlreadyReported(List<CommitComment> comments, Multimap<String,SonarIssue> fileViolations, Map<String, LinePositioner> linePositioners) throws MojoExecutionException {
 		fileViolations.entries().removeAll { entry ->
 			String path = entry.key
 			SonarIssue issue = entry.value
 			int position = linePositioners.get(path).toPosition(issue.line());
 
 			comments.any { comment ->
-				String body = comment.json().getString('body')
-				String commentPath = comment.json().getString('path')
+				String body = comment.body
+				String commentPath = comment.path
 
-				!comment.json().isNull('position') && commentPath == path && (body.contains(issue.key()) || (comment.json().getInt('position') == position && body.contains(issue.message())))
+				comment.position && commentPath == path && (body.contains(issue.key()) || (comment.position == position && body.contains(issue.message())))
 			}
 		}
 	}
@@ -215,10 +200,10 @@ class SonarPullRequestMojo extends AbstractMojo {
 		SonarIssues sonarIssues = new IssueJsonParser().parseIssues(new File(sonarReportPath).text)
 
 		resources.getComponents().collect { component ->
-			SonarPullRequestMojo.log.debug('Component: {}', component);
+			log.debug('Component: {}', component);
 
 			sonarIssues.list().grep { SonarIssue issue ->
-				SonarPullRequestMojo.log.debug('Issue {}, component key {}, component {}, status {}, result {}', issue.key(), issue.componentKey(), component, issue.status(), issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ])
+				log.debug('Issue {}, component key {}, component {}, status {}, result {}', issue.key(), issue.componentKey(), component, issue.status(), issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ])
 				issue.componentKey() == component && issue.status() in [ 'OPEN', 'CONFIRMED', 'REOPENED' ]
 			}
 		}.inject([]) { acc, val ->
