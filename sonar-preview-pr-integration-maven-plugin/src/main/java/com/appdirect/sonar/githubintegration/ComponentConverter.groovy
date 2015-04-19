@@ -10,7 +10,7 @@ import com.google.common.collect.HashBiMap
 import com.google.common.collect.Lists
 
 class ComponentConverter {
-	private static final Logger log = LoggerFactory.getLogger(ComponentConverter)
+	private static final Logger LOG = LoggerFactory.getLogger(ComponentConverter)
 
 	private final BiMap<String, String> sonarComponents;
 	private final List<MavenProject> reactorProjects;
@@ -23,11 +23,11 @@ class ComponentConverter {
 
 		files.each { file ->
 			String path = file.filename;
-			log.debug("Considering file {}", path)
+			LOG.debug("Considering file {}", path)
 
 			String componentKey = toComponentKey(path)
 			if (componentKey) {
-				log.debug("Adding component {} for file {}", componentKey, path)
+				LOG.debug("Adding component {} for file {}", componentKey, path)
 				this.sonarComponents.put(componentKey, path)
 			}
 		}
@@ -35,13 +35,13 @@ class ComponentConverter {
 
 	private String toComponentKey(String path) {
 		if (!path) {
-			log.debug("Path is null")
+			LOG.debug("Path is null")
 			return null
 		}
 
 		BestMatch bestMatch = find(path)
 		if (!bestMatch) {
-			log.debug("Best match is null for {}", path)
+			LOG.debug("Best match is null for {}", path)
 			return null
 		}
 
@@ -53,7 +53,7 @@ class ComponentConverter {
 		String relativePath = fullPath.substring(fullPath.indexOf(sources) + sources.length() + 1);
 		String componentKey = "${project.groupId}:${project.artifactId}${sonarBranch ? ':' + sonarBranch : ''}:${relativePath}"
 
-		log.debug("Component key for {}: {}", path, componentKey);
+		LOG.debug("Component key for {}: {}", path, componentKey);
 
 		return componentKey
 	}
@@ -72,20 +72,20 @@ class ComponentConverter {
 			File baseDir = project.getBasedir().getAbsoluteFile();
 			int longestSubstr = longestSubstr(path, baseDir.getAbsolutePath().replace( '\\', '/' ) );
 
-			log.debug("Basedir: {}, path: {}", baseDir, path);
+			LOG.debug("Basedir: {}, path: {}", baseDir, path);
 			if (longestSubstr > longest) {
 				File file = new File(project.getBasedir(), path.substring(longestSubstr));
 				if (file.exists()) {
 					bestMatchFile = file;
 					bestMatch = project;
 					longest = longestSubstr;
-					log.debug("Found new best match");
+					LOG.debug("Found new best match");
 				}
 			}
 		}
 
 		if (bestMatch != null && bestMatchFile != null) {
-			log.debug("Best match: {} for {}", bestMatch.artifactId, bestMatchFile.absolutePath);
+			LOG.debug("Best match: {} for {}", bestMatch.artifactId, bestMatchFile.absolutePath);
 			return new BestMatch([ project: bestMatch, file: bestMatchFile ]);
 
 		}

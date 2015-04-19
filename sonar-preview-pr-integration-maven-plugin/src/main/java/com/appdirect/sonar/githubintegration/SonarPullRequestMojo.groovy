@@ -26,7 +26,7 @@ import com.google.common.net.UrlEscapers
 
 @Mojo(name = 'publish', aggregator = true)
 class SonarPullRequestMojo extends AbstractMojo {
-	private static final Logger log = LoggerFactory.getLogger(SonarPullRequestMojo)
+	private static final Logger LOG = LoggerFactory.getLogger(SonarPullRequestMojo)
 	/**
 	 * The projects in the reactor.
 	 */
@@ -85,10 +85,10 @@ class SonarPullRequestMojo extends AbstractMojo {
 		List<CommitFile> files = pullRequestService.getFiles(repository, pullRequestId)
 		ComponentConverter componentConverter = getRelatedComponents(files)
 
-		log.info('{} files affected', componentConverter.size())
+		LOG.info('{} files affected', componentConverter.size())
 
 		List<SonarIssue> issues = getIssues(componentConverter);
-		log.info( "Found {} issues", issues.size());
+		LOG.info( "Found {} issues", issues.size());
 
 		Multimap<String, SonarIssue> fileViolations = issues.inject(LinkedHashMultimap.create()) { violations, issue ->
 			String path = componentConverter.componentToPath(issue.componentKey())
@@ -105,11 +105,11 @@ class SonarPullRequestMojo extends AbstractMojo {
 		Map<String, String> filesSha = getFilesSha(files)
 
 		removeIssuesOutsideBounds(fileViolations, linePositioners);
-		log.info('Found {} files with issues ({} issues) ', fileViolations.keySet().size(), fileViolations.size())
+		LOG.info('Found {} files with issues ({} issues) ', fileViolations.keySet().size(), fileViolations.size())
 
 		List<CommitComment> comments = pullRequestService.getComments(repository, pullRequestId)
 		removeIssuesAlreadyReported(comments, fileViolations, linePositioners)
-		log.info('Files with new issues: {} ({} issues)', fileViolations.keySet().size(), fileViolations.size())
+		LOG.info('Files with new issues: {} ({} issues)', fileViolations.keySet().size(), fileViolations.size())
 
 		List<RepositoryCommit> commits = pullRequestService.getCommits(repository, pullRequestId)
 		recordGit(commits, pullRequestService, repository, fileViolations, linePositioners, filesSha)
@@ -165,7 +165,7 @@ class SonarPullRequestMojo extends AbstractMojo {
 				String commitId = filesSha[path]
 				int position = linePositioners.get(path).toPosition(issue.line())
 
-				log.debug("Path: {}, line: {}, position: {}", path, issue.line(), position);
+				LOG.debug("Path: {}, line: {}, position: {}", path, issue.line(), position);
 				CommitComment comment = new CommitComment()
 				comment.body = body
 				comment.commitId = commitId
@@ -175,7 +175,7 @@ class SonarPullRequestMojo extends AbstractMojo {
 				try {
 					pullRequestService.createComment(repository, pullRequestId, comment);
 				} catch (IOException e) {
-					log.error("Unable to comment on: {}", path, e);
+					LOG.error("Unable to comment on: {}", path, e);
 				}
 			}
 		}
@@ -200,10 +200,10 @@ class SonarPullRequestMojo extends AbstractMojo {
 		SonarIssues sonarIssues = new IssueJsonParser().parseIssues(new File(sonarReportPath).text)
 
 		resources.getComponents().collect { component ->
-			log.debug('Component: {}', component);
+			LOG.debug('Component: {}', component);
 
 			sonarIssues.list().grep { SonarIssue issue ->
-				log.debug('Issue {}, component key {}, component {}, status {}, result {}', issue.key(), issue.componentKey(), component, issue.status(), issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ])
+				LOG.debug('Issue {}, component key {}, component {}, status {}, result {}', issue.key(), issue.componentKey(), component, issue.status(), issue.componentKey() == component && issue.status() in [ "OPEN", "CONFIRMED", "REOPENED" ])
 				issue.componentKey() == component && issue.status() in [ 'OPEN', 'CONFIRMED', 'REOPENED' ]
 			}
 		}.inject([]) { acc, val ->
