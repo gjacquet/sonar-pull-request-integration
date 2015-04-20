@@ -36,10 +36,10 @@ public class ComponentConverterTest {
 
 		ComponentConverter c = new ComponentConverter( "hazelcast", projects, commits, new SystemStreamLog() );
 		assertEquals(
-				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:com.mysema.query.hazelcast.AbstractIMapQuery",
+				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:src/main/java/com/mysema/query/hazelcast/AbstractIMapQuery.java",
 				c.pathToComponent( "/querydsl-hazelcast/src/main/java/com/mysema/query/hazelcast/AbstractIMapQuery.java" ) );
 		assertEquals(
-				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:com.mysema.query.hazelcast.impl.HazelcastSerializer",
+				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:src/main/java/com/mysema/query/hazelcast/impl/HazelcastSerializer.java",
 				c.pathToComponent( "/querydsl-hazelcast/src/main/java/com/mysema/query/hazelcast/impl/HazelcastSerializer.java" ) );
 		assertEquals(
 				null,
@@ -71,10 +71,10 @@ public class ComponentConverterTest {
 		List<CommitFile> commits = commits();
 		ComponentConverter c = new ComponentConverter( "hazelcast", projects, commits, new SystemStreamLog() );
 		assertEquals(
-				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:com.mysema.query.hazelcast.AbstractIMapQuery",
+				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:src/main/java/com/mysema/query/hazelcast/AbstractIMapQuery.java",
 				c.pathToComponent( "/querydsl-hazelcast/src/main/java/com/mysema/query/hazelcast/AbstractIMapQuery.java" ) );
 		assertEquals(
-				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:com.mysema.query.hazelcast.impl.HazelcastSerializer",
+				"com.mysema.querydsl:querydsl-hazelcast:hazelcast:src/main/java/com/mysema/query/hazelcast/impl/HazelcastSerializer.java",
 				c.pathToComponent( "/querydsl-hazelcast/src/main/java/com/mysema/query/hazelcast/impl/HazelcastSerializer.java" ) );
 		assertEquals(
 				null,
