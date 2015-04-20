@@ -127,7 +127,7 @@ class SonarPullRequestMojo extends AbstractMojo {
 
 	private Map<String, LinePositioner> createLinePositioners(List<CommitFile> files) throws IOException {
 		Map<String, LinePositioner> linePositioners = files.findAll {
-			!it.patch != null
+			it.patch != null
 		}.inject([:]) { positioners, commitFile ->
 			LinePositioner positioner
 			if (commitFile.status == 'added') {
@@ -168,7 +168,6 @@ class SonarPullRequestMojo extends AbstractMojo {
 				comment.commitId = commitId
 				comment.path = path
 				comment.position = position
-				comment.setLine(issue.line())
 				try {
 					pullRequestService.createComment(repository, pullRequestId, comment)
 				} catch (IOException e) {
