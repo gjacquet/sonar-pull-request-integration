@@ -10,7 +10,7 @@ class PatchLinePositioner implements LinePositioner {
 
 		patch.eachLine { line ->
 			if (line.startsWith("@@")) {
-				currentLine = line.replaceAll('@@.*\\+', '').replaceAll('\\,.*', '').replaceAll("\\D", "") as int
+				currentLine = line.replaceAll('@@.*?\\+', '').replaceAll('\\,.*', '').replaceAll("\\D", "") as int
 			} else if (line.startsWith( "+" )) {
 				lineToPosition << [ (currentLine): position ]
 				if (firstLine < 0) {
